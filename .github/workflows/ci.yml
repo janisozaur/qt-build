@@ -31,7 +31,7 @@ jobs:
             lld \
             build-essential
 
-      - uses: xdqi/sccache-dist-action@v1
+      - uses: xdqi/sccache-dist-action@master
         with:
           mode: worker
           worker-index: ${{ matrix.idx }}
@@ -52,7 +52,7 @@ jobs:
             sccache-${{ runner.os }}-clang-qt-${{ env.QT_VERSION }}-
             sccache-${{ runner.os }}-clang-
 
-      - uses: xdqi/sccache-dist-action@v1
+      - uses: xdqi/sccache-dist-action@master
         with:
           mode: coordinator
           expected-workers: 8
