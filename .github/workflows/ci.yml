@@ -43,7 +43,7 @@ jobs:
           worker-index: ${{ matrix.idx }}
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           slots: 0
-          sccahe-ref: 0.16.0
+          sccache-ref: 0.16.0
 
   build:
     runs-on: ubuntu-24.04
@@ -58,7 +58,7 @@ jobs:
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           slots: 0
           dist-fallback: true
-          sccahe-ref: 0.16.0
+          sccache-ref: 0.16.0
 
       - name: Install Qt build dependencies
         run: |
