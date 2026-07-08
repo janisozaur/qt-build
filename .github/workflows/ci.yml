@@ -1,4 +1,4 @@
-name: build-qt-6.11.1-tsan
+name: build-qt-6.11.1-tsan-sccache
 
 on:
   push:
@@ -18,12 +18,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        idx: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+        idx: [1, 2, 3, 4, 5, 6, 7, 8]
 
     runs-on: ubuntu-24.04
 
     steps:
-      - name: Install remote compiler
+      - name: Install compiler
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -31,26 +31,34 @@ jobs:
             lld \
             build-essential
 
-      - uses: xdqi/distcc-action@v1.0.0
+      - uses: xdqi/sccache-dist-action@v1
         with:
           mode: worker
           worker-index: ${{ matrix.idx }}
-          install-distcc: true
-          oauth-client-id: ${{ secrets.TS_OAUTH_ID }}
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          slots: 0
 
   build:
     runs-on: ubuntu-24.04
+
     steps:
       - uses: actions/checkout@v6
 
-      - uses: xdqi/distcc-action@v1.0.0
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/sccache
+          key: sccache-${{ runner.os }}-clang-qt-${{ env.QT_VERSION }}-${{ github.sha }}
+          restore-keys: |
+            sccache-${{ runner.os }}-clang-qt-${{ env.QT_VERSION }}-
+            sccache-${{ runner.os }}-clang-
+
+      - uses: xdqi/sccache-dist-action@v1
         with:
           mode: coordinator
-          expected-workers: 19
-          install-distcc: true
-          oauth-client-id: ${{ secrets.TS_OAUTH_ID }}
+          expected-workers: 8
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          slots: 0
+          dist-fallback: true
 
       - name: Install Qt build dependencies
         run: |
@@ -104,21 +112,21 @@ jobs:
           wget -q "https://download.qt.io/archive/qt/${QT_MINOR}/${QT_VERSION}/single/${QT_SRC_ARCHIVE}"
           tar -xf "${QT_SRC_ARCHIVE}"
 
-      - name: Show distcc configuration
+      - name: Show sccache configuration
         run: |
-          echo "DISTCC_HOSTS=${DISTCC_HOSTS:-}"
-          echo "DISTCC_J=${DISTCC_J:-}"
-          echo "DISTCC_CC_PREFIX=${DISTCC_CC_PREFIX:-}"
-          which distcc || true
-          distcc --version || true
+          echo "SCCACHE_J=${SCCACHE_J:-}"
+          echo "SCCACHE_WORKERS_ONLINE=${SCCACHE_WORKERS_ONLINE:-}"
+          echo "SCCACHE_DIR=${SCCACHE_DIR:-}"
+          echo "SCCACHE_DIST_FALLBACK=${SCCACHE_DIST_FALLBACK:-}"
+          which sccache
+          sccache --version
+          sccache --show-stats || true
 
       - name: Configure Qt with TSan
         run: |
           mkdir -p "${QT_BUILD_DIR}"
           cd "${QT_BUILD_DIR}"
 
-          CC="${DISTCC_CC_PREFIX} clang" \
-          CXX="${DISTCC_CC_PREFIX} clang++" \
           "../${QT_SRC_DIR}/configure" \
             -prefix "${QT_INSTALL_DIR}" \
             -opensource \
@@ -131,14 +139,22 @@ jobs:
             -skip qtwebengine \
             -- \
             -GNinja \
-            -DCMAKE_LINKER=lld \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_C_COMPILER_LAUNCHER=sccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
             -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld" \
             -DCMAKE_SHARED_LINKER_FLAGS="-fuse-ld=lld"
 
-      - name: Build Qt with Ninja and distcc
+      - name: Build Qt with Ninja and sccache-dist
         run: |
           cd "${QT_BUILD_DIR}"
-          cmake --build . --parallel "${DISTCC_J:-40}"
+          cmake --build . --parallel "${SCCACHE_J:-64}"
+
+      - name: Show sccache stats
+        if: always()
+        run: |
+          sccache --show-stats || true
 
       - name: Install Qt
         run: |
