@@ -12,6 +12,12 @@ env:
   QT_BUILD_DIR: "qt-build-tsan"
   QT_INSTALL_DIR: "${{ github.workspace }}/qt-6.11.1-tsan"
   DEBIAN_FRONTEND: noninteractive
+  SCCACHE_BUCKET: "sccache-openrct2"
+  SCCACHE_REGION: "auto"
+  SCCACHE_S3_KEY_PREFIX: "sccache-qt-6.11.1-tsan"
+  SCCACHE_ENDPOINT: "https://sfo3.digitaloceanspaces.com"
+  AWS_ACCESS_KEY_ID: ${{ secrets.S3_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET }}
 
 jobs:
   workers:
@@ -37,20 +43,13 @@ jobs:
           worker-index: ${{ matrix.idx }}
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           slots: 0
+          sccahe-ref: 0.16.0
 
   build:
     runs-on: ubuntu-24.04
 
     steps:
       - uses: actions/checkout@v6
-
-      - uses: actions/cache@v4
-        with:
-          path: ~/.cache/sccache
-          key: sccache-${{ runner.os }}-clang-qt-${{ env.QT_VERSION }}-${{ github.sha }}
-          restore-keys: |
-            sccache-${{ runner.os }}-clang-qt-${{ env.QT_VERSION }}-
-            sccache-${{ runner.os }}-clang-
 
       - uses: xdqi/sccache-dist-action@master
         with:
@@ -59,6 +58,7 @@ jobs:
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           slots: 0
           dist-fallback: true
+          sccahe-ref: 0.16.0
 
       - name: Install Qt build dependencies
         run: |
@@ -116,9 +116,8 @@ jobs:
         run: |
           echo "SCCACHE_J=${SCCACHE_J:-}"
           echo "SCCACHE_WORKERS_ONLINE=${SCCACHE_WORKERS_ONLINE:-}"
-          echo "SCCACHE_DIR=${SCCACHE_DIR:-}"
-          echo "SCCACHE_DIST_FALLBACK=${SCCACHE_DIST_FALLBACK:-}"
-          which sccache
+          echo "SCCACHE_BUCKET=${SCCACHE_BUCKET:-}"
+          echo "SCCACHE_REGION=${SCCACHE_REGION:-}"
           sccache --version
           sccache --show-stats || true
 
