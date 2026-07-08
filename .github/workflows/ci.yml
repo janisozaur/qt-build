@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        idx: [1, 2, 3, 4, 5, 6, 7, 8]
+        idx: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
 
     runs-on: ubuntu-24.04
 
@@ -55,7 +55,7 @@ jobs:
       - uses: xdqi/sccache-dist-action@master
         with:
           mode: coordinator
-          expected-workers: 8
+          expected-workers: 16
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           slots: 0
           dist-fallback: true
@@ -136,6 +136,7 @@ jobs:
             -sanitize thread \
             -nomake examples \
             -nomake tests \
+            -no-pch \
             -skip qtwebengine \
             -- \
             -GNinja \
