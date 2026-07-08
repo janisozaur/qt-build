@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        idx: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+        idx: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
 
     runs-on: ubuntu-24.04
 
@@ -41,8 +41,6 @@ jobs:
 
   build:
     runs-on: ubuntu-24.04
-    needs: workers
-
     steps:
       - uses: actions/checkout@v6
 
