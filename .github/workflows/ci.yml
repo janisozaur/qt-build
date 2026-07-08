@@ -1,0 +1,161 @@
+name: build-qt-6.11.1-tsan
+
+on:
+  push:
+  workflow_dispatch:
+
+env:
+  QT_VERSION: "6.11.1"
+  QT_MINOR: "6.11"
+  QT_SRC_ARCHIVE: "qt-everywhere-src-6.11.1.tar.xz"
+  QT_SRC_DIR: "qt-everywhere-src-6.11.1"
+  QT_BUILD_DIR: "qt-build-tsan"
+  QT_INSTALL_DIR: "${{ github.workspace }}/qt-6.11.1-tsan"
+  DEBIAN_FRONTEND: noninteractive
+
+jobs:
+  workers:
+    strategy:
+      fail-fast: false
+      matrix:
+        idx: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]
+
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Install remote compiler
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang \
+            lld \
+            build-essential
+
+      - uses: xdqi/distcc-action@v1.0.0
+        with:
+          mode: worker
+          worker-index: ${{ matrix.idx }}
+          install-distcc: true
+          oauth-client-id: ${{ secrets.TS_OAUTH_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+
+  build:
+    runs-on: ubuntu-24.04
+    needs: workers
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: xdqi/distcc-action@v1.0.0
+        with:
+          mode: coordinator
+          expected-workers: 8
+          install-distcc: true
+          oauth-client-id: ${{ secrets.TS_OAUTH_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+
+      - name: Install Qt build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            clang \
+            lld \
+            cmake \
+            ninja-build \
+            python3 \
+            perl \
+            pkg-config \
+            wget \
+            xz-utils \
+            zstd \
+            libgl1-mesa-dev \
+            libglu1-mesa-dev \
+            libegl1-mesa-dev \
+            libfontconfig1-dev \
+            libfreetype-dev \
+            libx11-dev \
+            libx11-xcb-dev \
+            libxext-dev \
+            libxfixes-dev \
+            libxi-dev \
+            libxrender-dev \
+            libxcb1-dev \
+            libxcb-cursor-dev \
+            libxcb-glx0-dev \
+            libxcb-keysyms1-dev \
+            libxcb-image0-dev \
+            libxcb-shm0-dev \
+            libxcb-icccm4-dev \
+            libxcb-sync-dev \
+            libxcb-xfixes0-dev \
+            libxcb-shape0-dev \
+            libxcb-randr0-dev \
+            libxcb-render-util0-dev \
+            libxcb-util-dev \
+            libxcb-xkb-dev \
+            libxkbcommon-dev \
+            libxkbcommon-x11-dev \
+            libdbus-1-dev \
+            libglib2.0-dev \
+            libssl-dev \
+            libcups2-dev
+
+      - name: Download Qt source
+        run: |
+          wget -q "https://download.qt.io/archive/qt/${QT_MINOR}/${QT_VERSION}/single/${QT_SRC_ARCHIVE}"
+          tar -xf "${QT_SRC_ARCHIVE}"
+
+      - name: Show distcc configuration
+        run: |
+          echo "DISTCC_HOSTS=${DISTCC_HOSTS:-}"
+          echo "DISTCC_J=${DISTCC_J:-}"
+          echo "DISTCC_CC_PREFIX=${DISTCC_CC_PREFIX:-}"
+          which distcc || true
+          distcc --version || true
+
+      - name: Configure Qt with TSan
+        run: |
+          mkdir -p "${QT_BUILD_DIR}"
+          cd "${QT_BUILD_DIR}"
+
+          CC="${DISTCC_CC_PREFIX} clang" \
+          CXX="${DISTCC_CC_PREFIX} clang++" \
+          "../${QT_SRC_DIR}/configure" \
+            -prefix "${QT_INSTALL_DIR}" \
+            -opensource \
+            -confirm-license \
+            -debug \
+            -force-debug-info \
+            -sanitize thread \
+            -nomake examples \
+            -nomake tests \
+            -skip qtwebengine \
+            -- \
+            -GNinja \
+            -DCMAKE_LINKER=lld \
+            -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld" \
+            -DCMAKE_SHARED_LINKER_FLAGS="-fuse-ld=lld"
+
+      - name: Build Qt with Ninja and distcc
+        run: |
+          cd "${QT_BUILD_DIR}"
+          cmake --build . --parallel "${DISTCC_J:-64}"
+
+      - name: Install Qt
+        run: |
+          cd "${QT_BUILD_DIR}"
+          cmake --install .
+
+      - name: Package installed Qt
+        run: |
+          tar --zstd -cf "qt-${QT_VERSION}-ubuntu24.04-tsan.tar.zst" \
+            -C "$(dirname "${QT_INSTALL_DIR}")" \
+            "$(basename "${QT_INSTALL_DIR}")"
+
+      - name: Upload Qt artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: qt-${{ env.QT_VERSION }}-ubuntu24.04-tsan
+          path: qt-${{ env.QT_VERSION }}-ubuntu24.04-tsan.tar.zst
+          if-no-files-found: error
