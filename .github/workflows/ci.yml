@@ -12,6 +12,15 @@ env:
   QT_BUILD_DIR: "qt-build-tsan"
   QT_INSTALL_DIR: "${{ github.workspace }}/qt-6.11.1-tsan"
   DEBIAN_FRONTEND: noninteractive
+
+  # sccache multi-level
+  SCCACHE_MULTILEVEL_CHAIN: "disk,s3"
+  SCCACHE_MULTILEVEL_WRITE_ERROR_POLICY: "l0"
+
+  # disk cache persisted by GitHub cache
+  SCCACHE_DIR: "${{ github.workspace }}/.sccache"
+  SCCACHE_CACHE_SIZE: "10G"
+
   SCCACHE_BUCKET: "sccache-openrct2"
   SCCACHE_REGION: "auto"
   SCCACHE_S3_KEY_PREFIX: "sccache-qt-6.11.1-tsan"
@@ -49,6 +58,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+
+      - name: Restore sccache disk cache
+        uses: actions/cache/restore@v6
+        with:
+          path: .sccache
+          key: sccache-qt-tsan-${{ runner.os }}
+          restore-keys: |
+            sccache-qt-tsan-
 
       - uses: xdqi/sccache-dist-action@master
         with:
@@ -159,6 +176,13 @@ jobs:
         run: |
           cd "${QT_BUILD_DIR}"
           cmake --install .
+
+      - name: Save sccache disk cache
+        if: always()
+        uses: actions/cache/save@v6
+        with:
+          path: .sccache
+          key: sccache-qt-tsan-${{ runner.os }}
 
       - name: Package installed Qt
         run: |
