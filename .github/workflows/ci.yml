@@ -103,7 +103,8 @@ jobs:
             libdbus-1-dev \
             libglib2.0-dev \
             libssl-dev \
-            libcups2-dev
+            libcups2-dev \
+            spirv-tools
 
       - name: Download Qt source
         run: |
