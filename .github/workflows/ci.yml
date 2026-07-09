@@ -128,7 +128,7 @@ jobs:
             -prefix "${QT_INSTALL_DIR}" \
             -opensource \
             -confirm-license \
-            -debug \
+            -debug-and-release \
             -force-debug-info \
             -sanitize thread \
             -nomake examples \
