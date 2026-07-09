@@ -142,8 +142,8 @@ jobs:
           mkdir -p "${QT_BUILD_DIR}"
           cd "${QT_BUILD_DIR}"
 
-          "../qt6/configure" \
-            -prefix "/workspace/qt-build-26.04-debug-install" \
+          "../${QT_SRC_DIR}/configure" \
+            -prefix "${QT_INSTALL_DIR}" \
             -opensource \
             -confirm-license \
             -debug \
