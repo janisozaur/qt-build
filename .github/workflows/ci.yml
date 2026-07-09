@@ -35,7 +35,7 @@ jobs:
       matrix:
         idx: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
 
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
 
     steps:
       - name: Install compiler
@@ -54,7 +54,7 @@ jobs:
           slots: 0
 
   build:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
 
     steps:
       - uses: actions/checkout@v6
@@ -142,8 +142,8 @@ jobs:
           mkdir -p "${QT_BUILD_DIR}"
           cd "${QT_BUILD_DIR}"
 
-          "../${QT_SRC_DIR}/configure" \
-            -prefix "${QT_INSTALL_DIR}" \
+          "../qt6/configure" \
+            -prefix "/workspace/qt-build-26.04-debug-install" \
             -opensource \
             -confirm-license \
             -debug \
@@ -186,20 +186,20 @@ jobs:
 
       - name: Package installed Qt
         run: |
-          tar --zstd -cf "qt-${QT_VERSION}-ubuntu24.04-tsan.tar.zst" \
+          tar --zstd -cf "qt-${QT_VERSION}-ubuntu26.04-tsan.tar.zst" \
             -C "$(dirname "${QT_INSTALL_DIR}")" \
             "$(basename "${QT_INSTALL_DIR}")"
 
       - name: Upload Qt artifact
         uses: actions/upload-artifact@v4
         with:
-          name: qt-${{ env.QT_VERSION }}-ubuntu24.04-tsan
-          path: qt-${{ env.QT_VERSION }}-ubuntu24.04-tsan.tar.zst
+          name: qt-${{ env.QT_VERSION }}-ubuntu26.04-tsan
+          path: qt-${{ env.QT_VERSION }}-ubuntu26.04-tsan.tar.zst
           if-no-files-found: error
 
   release:
     needs: build
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: write
 
@@ -207,13 +207,13 @@ jobs:
       - name: Download Qt artifact
         uses: actions/download-artifact@v8
         with:
-          name: qt-${{ env.QT_VERSION }}-ubuntu24.04-tsan
+          name: qt-${{ env.QT_VERSION }}-ubuntu26.04-tsan
 
       - name: Create Release
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: qt-${{ env.QT_VERSION }}-ubuntu24.04-tsan-${{ github.run_number }}
-          name: Qt ${{ env.QT_VERSION }} Ubuntu 24.04 TSAN
+          tag_name: qt-${{ env.QT_VERSION }}-ubuntu26.04-tsan-${{ github.run_number }}
+          name: Qt ${{ env.QT_VERSION }} Ubuntu 26.04 TSAN
           generate_release_notes: true
           files: |
-            qt-${{ env.QT_VERSION }}-ubuntu24.04-tsan-linux-x86_64.tar.zst
+            qt-${{ env.QT_VERSION }}-ubuntu26.04-tsan-linux-x86_64.tar.zst
