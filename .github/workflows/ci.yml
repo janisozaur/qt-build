@@ -196,3 +196,24 @@ jobs:
           name: qt-${{ env.QT_VERSION }}-ubuntu24.04-tsan
           path: qt-${{ env.QT_VERSION }}-ubuntu24.04-tsan.tar.zst
           if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download Qt artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: qt-${{ env.QT_VERSION }}-ubuntu24.04-tsan
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: qt-${{ env.QT_VERSION }}-ubuntu24.04-tsan-${{ github.run_number }}
+          name: Qt ${{ env.QT_VERSION }} Ubuntu 24.04 TSAN
+          generate_release_notes: true
+          files: |
+            qt-${{ env.QT_VERSION }}-ubuntu24.04-tsan-linux-x86_64.tar.zst
