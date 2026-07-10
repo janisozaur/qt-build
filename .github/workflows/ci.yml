@@ -137,6 +137,7 @@ jobs:
           echo "SCCACHE_WORKERS_ONLINE=${SCCACHE_WORKERS_ONLINE:-}"
           echo "SCCACHE_BUCKET=${SCCACHE_BUCKET:-}"
           echo "SCCACHE_REGION=${SCCACHE_REGION:-}"
+          mkdir -p ${ SCCACHE_DIR }
           sccache --version
           sccache --show-stats || true
 
@@ -149,7 +150,7 @@ jobs:
             -prefix "${QT_INSTALL_DIR}" \
             -opensource \
             -confirm-license \
-            -release \
+            -debug \
             -force-debug-info \
             -sanitize thread \
             -nomake examples \
@@ -194,7 +195,7 @@ jobs:
             "$(basename "${QT_INSTALL_DIR}")"
 
       - name: Upload Qt artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: qt-${{ env.QT_VERSION }}-ubuntu26.04-tsan
           path: qt-${{ env.QT_VERSION }}-ubuntu26.04-tsan.tar.zst
