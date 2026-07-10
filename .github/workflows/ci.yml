@@ -219,4 +219,4 @@ jobs:
           name: Qt ${{ env.QT_VERSION }} Ubuntu 26.04 TSAN
           generate_release_notes: true
           files: |
-            qt-${{ env.QT_VERSION }}-ubuntu26.04-tsan-linux-x86_64.tar.zst
+            qt-${{ env.QT_VERSION }}-ubuntu26.04-tsan.tar.zst
